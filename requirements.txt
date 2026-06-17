@@ -1,0 +1,27 @@
+# --- API ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.1
+email-validator==2.2.0
+
+# --- DB ---
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+
+# --- Auth ---
+bcrypt==4.2.1
+pyjwt==2.10.1
+
+# --- HTTP / integrations ---
+httpx==0.28.1
+cryptography==44.0.0
+
+# --- Background tasks ---
+celery==5.4.0
+redis==5.2.1
+
+# --- Utils ---
+python-multipart==0.0.20
+tenacity==9.0.0
