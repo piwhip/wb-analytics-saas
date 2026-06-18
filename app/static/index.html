@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WB Analytics — аналитика продаж Wildberries</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --violet: #7c3aed;
+    --violet-d: #5b21b6;
+    --pink: #cb11ab;
+    --bg: #f5f4fb;
+    --card: #ffffff;
+    --text: #1e1b2e;
+    --muted: #6b6880;
+    --border: #e7e4f2;
+    --green: #16a34a;
+    --red: #dc2626;
+    --shadow: 0 1px 3px rgba(30, 27, 46, .06), 0 8px 24px rgba(124, 58, 237, .06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.5;
+  }
+  a { color: var(--violet); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+
+  /* Header */
+  header {
+    background: linear-gradient(135deg, var(--violet) 0%, var(--pink) 100%);
+    color: #fff; padding: 14px 0;
+  }
+  .nav { display: flex; align-items: center; justify-content: space-between; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
+  .brand .logo { width: 32px; height: 32px; border-radius: 9px; background: rgba(255,255,255,.2);
+    display: grid; place-items: center; font-size: 18px; }
+  .nav-right { display: flex; align-items: center; gap: 14px; font-size: 14px; }
+  .nav-right a { color: rgba(255,255,255,.85); text-decoration: none; }
+  .nav-right a:hover { color: #fff; }
+  #userBadge { display: none; align-items: center; gap: 10px; }
+  #userEmail { opacity: .9; font-size: 13px; }
+
+  /* Hero */
+  .hero { padding: 56px 0 40px; text-align: center; }
+  .hero h1 { font-size: 40px; line-height: 1.15; letter-spacing: -.5px; }
+  .hero h1 .grad { background: linear-gradient(135deg, var(--violet), var(--pink));
+    -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero p { color: var(--muted); font-size: 18px; max-width: 620px; margin: 16px auto 0; }
+  .features { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 26px; }
+  .chip { background: #fff; border: 1px solid var(--border); border-radius: 999px;
+    padding: 8px 16px; font-size: 14px; color: var(--text); box-shadow: var(--shadow); }
+
+  /* Buttons */
+  .btn { border: none; border-radius: 11px; padding: 13px 22px; font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: transform .05s, box-shadow .15s, opacity .15s; font-family: inherit; }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary { background: linear-gradient(135deg, var(--violet), var(--pink)); color: #fff;
+    box-shadow: 0 6px 18px rgba(124,58,237,.35); }
+  .btn-primary:hover { box-shadow: 0 8px 24px rgba(124,58,237,.45); }
+  .btn-ghost { background: #fff; color: var(--violet); border: 1.5px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--violet); }
+  .btn-sm { padding: 8px 14px; font-size: 13px; border-radius: 9px; }
+  .btn:disabled { opacity: .6; cursor: not-allowed; }
+  .cta { display: flex; gap: 14px; justify-content: center; margin-top: 32px; flex-wrap: wrap; }
+
+  /* Cards / sections */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    box-shadow: var(--shadow); padding: 22px; }
+  .section { margin-bottom: 22px; }
+  .section h2 { font-size: 18px; margin-bottom: 4px; }
+  .section .sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+
+  /* Auth */
+  #authCard { max-width: 420px; margin: 0 auto; }
+  .tabs { display: flex; gap: 6px; background: var(--bg); padding: 4px; border-radius: 11px; margin-bottom: 18px; }
+  .tabs button { flex: 1; border: none; background: transparent; padding: 9px; border-radius: 8px;
+    font-weight: 600; cursor: pointer; color: var(--muted); font-family: inherit; font-size: 14px; }
+  .tabs button.active { background: #fff; color: var(--violet); box-shadow: var(--shadow); }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; }
+  input { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px;
+    font-size: 15px; font-family: inherit; transition: border-color .15s; }
+  input:focus { outline: none; border-color: var(--violet); }
+  .form-btn { width: 100%; margin-top: 20px; }
+  .divider { text-align: center; color: var(--muted); font-size: 13px; margin: 18px 0;
+    position: relative; }
+  .divider span { background: #fff; padding: 0 12px; position: relative; z-index: 1; }
+  .divider::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px;
+    background: var(--border); }
+
+  /* Dashboard */
+  #dashboard { display: none; }
+  .toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+    gap: 12px; margin-bottom: 22px; }
+  .toolbar .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 22px; }
+  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    padding: 18px 20px; box-shadow: var(--shadow); }
+  .kpi .label { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+  .kpi .value { font-size: 26px; font-weight: 700; letter-spacing: -.5px; }
+  .kpi .value.green { color: var(--green); }
+  .grid-2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 22px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .badge.low { background: #fee2e2; color: var(--red); }
+  .badge.ok { background: #dcfce7; color: var(--green); }
+  .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 30px 0; }
+
+  /* Toast */
+  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(120%);
+    background: var(--text); color: #fff; padding: 13px 20px; border-radius: 11px; font-size: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.25); transition: transform .25s; z-index: 50; max-width: 90vw; }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+  #toast.err { background: var(--red); }
+
+  footer { text-align: center; color: var(--muted); font-size: 13px; padding: 40px 0 50px; }
+  .spinner { display: inline-block; width: 15px; height: 15px; border: 2px solid rgba(255,255,255,.4);
+    border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: -2px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 760px) {
+    .hero h1 { font-size: 30px; }
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap nav">
+    <div class="brand"><span class="logo">📊</span> WB Analytics</div>
+    <div class="nav-right">
+      <a href="/docs" target="_blank">API / Swagger</a>
+      <a href="https://github.com/piwhip/wb-analytics-saas" target="_blank">GitHub</a>
+      <div id="userBadge">
+        <span id="userEmail"></span>
+        <button class="btn btn-ghost btn-sm" onclick="logout()">Выйти</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- LANDING -->
+<main id="landing">
+  <div class="wrap hero">
+    <h1>Аналитика продаж <span class="grad">Wildberries</span><br>в одном окне</h1>
+    <p>Подключите кабинет WB — и получите выручку, динамику продаж, топ товаров
+       и оповещения о заканчивающихся остатках. Без Excel и ручной возни.</p>
+    <div class="features">
+      <span class="chip">📈 Динамика продаж</span>
+      <span class="chip">💰 Выручка и средний чек</span>
+      <span class="chip">🏆 Топ товаров</span>
+      <span class="chip">📦 Контроль остатков</span>
+      <span class="chip">🤖 Telegram-уведомления</span>
+    </div>
+    <div class="cta">
+      <button class="btn btn-primary" id="demoBtn" onclick="runDemo()">⚡ Запустить демо за 1 клик</button>
+      <button class="btn btn-ghost" onclick="scrollToAuth()">У меня есть аккаунт</button>
+    </div>
+    <p style="font-size:13px;margin-top:14px">Демо создаст тестовый аккаунт и заполнит его примерами продаж — ничего вводить не нужно.</p>
+  </div>
+
+  <div class="wrap section" id="authSection" style="margin-top:20px">
+    <div class="card" id="authCard">
+      <div class="tabs">
+        <button id="tabLogin" class="active" onclick="switchTab('login')">Вход</button>
+        <button id="tabReg" onclick="switchTab('reg')">Регистрация</button>
+      </div>
+      <form id="authForm" onsubmit="return submitAuth(event)">
+        <label>Email</label>
+        <input id="email" type="email" placeholder="you@example.com" required />
+        <label>Пароль</label>
+        <input id="password" type="password" placeholder="минимум 8 символов" minlength="8" required />
+        <button class="btn btn-primary form-btn" id="authSubmit" type="submit">Войти</button>
+      </form>
+      <div class="divider"><span>или</span></div>
+      <button class="btn btn-ghost" style="width:100%" onclick="runDemo()">⚡ Демо без регистрации</button>
+    </div>
+  </div>
+</main>
+
+<!-- DASHBOARD -->
+<main id="dashboard" class="wrap" style="padding-top:30px">
+  <div class="toolbar">
+    <div>
+      <h2 style="font-size:22px">Дашборд продаж</h2>
+      <div class="sub" style="color:var(--muted);font-size:13px" id="periodLabel">за последние 30 дней</div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-ghost btn-sm" id="seedBtn" onclick="seedData()">➕ Демо-данные</button>
+      <button class="btn btn-ghost btn-sm" onclick="loadDashboard()">🔄 Обновить</button>
+    </div>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="grid-2">
+    <div class="card section">
+      <h2>Динамика выручки</h2>
+      <div class="sub">по дням, ₽</div>
+      <canvas id="chart" height="120"></canvas>
+    </div>
+    <div class="card section">
+      <h2>Заканчивается на складе</h2>
+      <div class="sub">остаток ≤ 5 шт.</div>
+      <div id="lowStock"></div>
+    </div>
+  </div>
+
+  <div class="card section">
+    <h2>Топ товаров по выручке</h2>
+    <div class="sub">за период</div>
+    <div id="topProducts"></div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<footer>
+  WB Analytics SaaS · FastAPI · PostgreSQL · Docker — учебный проект для портфолио
+</footer>
+
+<script>
+const API = "/api/v1";
+let token = localStorage.getItem("wb_token") || null;
+let chart = null;
+let authMode = "login";
+
+const fmtMoney = n => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(n) + " ₽";
+const fmtNum = n => new Intl.NumberFormat("ru-RU").format(n);
+
+function toast(msg, isErr = false) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "show" + (isErr ? " err" : "");
+  clearTimeout(t._t);
+  t._t = setTimeout(() => (t.className = ""), 3500);
+}
+
+async function api(path, { method = "GET", body, auth = true, form = false } = {}) {
+  const headers = {};
+  if (auth && token) headers["Authorization"] = "Bearer " + token;
+  let payload;
+  if (form) {
+    headers["Content-Type"] = "application/x-www-form-urlencoded";
+    payload = new URLSearchParams(body).toString();
+  } else if (body) {
+    headers["Content-Type"] = "application/json";
+    payload = JSON.stringify(body);
+  }
+  const res = await fetch(API + path, { method, headers, body: payload });
+  if (!res.ok) {
+    let detail = "Ошибка " + res.status;
+    try { const j = await res.json(); if (j.detail) detail = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail); } catch {}
+    throw new Error(detail);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+function switchTab(mode) {
+  authMode = mode;
+  document.getElementById("tabLogin").classList.toggle("active", mode === "login");
+  document.getElementById("tabReg").classList.toggle("active", mode === "reg");
+  document.getElementById("authSubmit").textContent = mode === "login" ? "Войти" : "Создать аккаунт";
+}
+
+function scrollToAuth() {
+  document.getElementById("authSection").scrollIntoView({ behavior: "smooth" });
+}
+
+async function submitAuth(e) {
+  e.preventDefault();
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const btn = document.getElementById("authSubmit");
+  btn.disabled = true;
+  try {
+    if (authMode === "reg") {
+      await api("/auth/register", { method: "POST", auth: false, body: { email, password } });
+    }
+    await login(email, password);
+    toast("Добро пожаловать!");
+  } catch (err) {
+    toast(err.message, true);
+  } finally {
+    btn.disabled = false;
+  }
+  return false;
+}
+
+async function login(email, password) {
+  const data = await api("/auth/login", { method: "POST", auth: false, form: true,
+    body: { username: email, password } });
+  token = data.access_token;
+  localStorage.setItem("wb_token", token);
+  await enterApp();
+}
+
+async function runDemo() {
+  const btn = document.getElementById("demoBtn");
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Готовим демо…'; }
+  try {
+    const rnd = Math.random().toString(36).slice(2, 10);
+    const email = `demo_${rnd}@wb.local`;
+    const password = "demo" + rnd + "X1";
+    await api("/auth/register", { method: "POST", auth: false, body: { email, password } });
+    await login(email, password);
+    await seedData(true);
+    toast("Демо готово — вот ваша аналитика!");
+  } catch (err) {
+    toast(err.message, true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = "⚡ Запустить демо за 1 клик"; }
+  }
+}
+
+async function seedData(silent = false) {
+  const btn = document.getElementById("seedBtn");
+  if (btn) btn.disabled = true;
+  try {
+    const r = await api("/demo/seed", { method: "POST" });
+    if (!silent) toast(`Добавлено: ${r.sales} продаж, ${r.orders} заказов`);
+    await loadDashboard();
+  } catch (err) {
+    toast(err.message, true);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function enterApp() {
+  const me = await api("/users/me");
+  document.getElementById("userEmail").textContent = me.email;
+  document.getElementById("userBadge").style.display = "flex";
+  document.getElementById("landing").style.display = "none";
+  document.getElementById("dashboard").style.display = "block";
+  await loadDashboard();
+}
+
+function logout() {
+  token = null;
+  localStorage.removeItem("wb_token");
+  document.getElementById("userBadge").style.display = "none";
+  document.getElementById("dashboard").style.display = "none";
+  document.getElementById("landing").style.display = "block";
+  window.scrollTo({ top: 0 });
+}
+
+async function loadDashboard() {
+  try {
+    const [summary, dyn, top, low] = await Promise.all([
+      api("/analytics/summary"),
+      api("/analytics/sales-dynamics"),
+      api("/analytics/top-products?limit=8"),
+      api("/analytics/low-stock?threshold=5"),
+    ]);
+    renderKpis(summary);
+    renderChart(dyn);
+    renderTop(top);
+    renderLow(low);
+  } catch (err) {
+    toast(err.message, true);
+  }
+}
+
+function renderKpis(s) {
+  const cards = [
+    { label: "Выручка (продажи)", value: fmtMoney(s.sales_revenue), green: true },
+    { label: "Продаж", value: fmtNum(s.sales_count) },
+    { label: "Средний чек", value: fmtMoney(s.avg_check) },
+    { label: "К перечислению", value: fmtMoney(s.for_pay_total) },
+  ];
+  document.getElementById("kpis").innerHTML = cards.map(c =>
+    `<div class="kpi"><div class="label">${c.label}</div>
+     <div class="value ${c.green ? "green" : ""}">${c.value}</div></div>`).join("");
+}
+
+function renderChart(dyn) {
+  const labels = dyn.points.map(p => {
+    const d = new Date(p.day);
+    return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
+  });
+  const data = dyn.points.map(p => p.revenue);
+  if (chart) chart.destroy();
+  const ctx = document.getElementById("chart");
+  const grad = ctx.getContext("2d").createLinearGradient(0, 0, 0, 240);
+  grad.addColorStop(0, "rgba(124,58,237,.35)");
+  grad.addColorStop(1, "rgba(124,58,237,0)");
+  chart = new Chart(ctx, {
+    type: "line",
+    data: { labels, datasets: [{ data, fill: true, backgroundColor: grad,
+      borderColor: "#7c3aed", borderWidth: 2.5, tension: .35, pointRadius: 0,
+      pointHoverRadius: 5, pointHoverBackgroundColor: "#7c3aed" }] },
+    options: {
+      plugins: { legend: { display: false },
+        tooltip: { callbacks: { label: c => fmtMoney(c.parsed.y) } } },
+      scales: {
+        y: { ticks: { callback: v => (v >= 1000 ? v / 1000 + "к" : v) }, grid: { color: "#f0eef8" } },
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } },
+      },
+    },
+  });
+}
+
+function renderTop(top) {
+  if (!top.products.length) {
+    document.getElementById("topProducts").innerHTML = '<div class="empty">Нет данных. Нажмите «Демо-данные».</div>';
+    return;
+  }
+  const rows = top.products.map((p, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td><b>${p.supplier_article || "—"}</b><br><span style="color:var(--muted);font-size:12px">${p.brand || ""} · ${p.subject || ""}</span></td>
+      <td class="num">${fmtNum(p.sales_count)}</td>
+      <td class="num">${fmtMoney(p.revenue)}</td>
+    </tr>`).join("");
+  document.getElementById("topProducts").innerHTML =
+    `<table><thead><tr><th>#</th><th>Товар</th><th class="num">Продаж</th><th class="num">Выручка</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function renderLow(low) {
+  if (!low.items.length) {
+    document.getElementById("lowStock").innerHTML = '<div class="empty">Всё в порядке — дефицита нет 👍</div>';
+    return;
+  }
+  const rows = low.items.slice(0, 8).map(it => `
+    <tr>
+      <td><b>${it.supplier_article || it.nm_id || "—"}</b><br><span style="color:var(--muted);font-size:12px">${it.warehouse_name || ""}</span></td>
+      <td class="num"><span class="badge ${it.quantity === 0 ? "low" : "ok"}">${it.quantity} шт.</span></td>
+    </tr>`).join("");
+  document.getElementById("lowStock").innerHTML =
+    `<table><tbody>${rows}</tbody></table>`;
+}
+
+// Авто-вход, если токен сохранён
+(async function init() {
+  if (token) {
+    try { await enterApp(); } catch { logout(); }
+  }
+})();
+</script>
+</body>
+</html>

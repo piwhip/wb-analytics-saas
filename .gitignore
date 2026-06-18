@@ -18,6 +18,7 @@ env/
 
 # DB / data
 *.sqlite3
+*.db
 pgdata/
 
 # OS
