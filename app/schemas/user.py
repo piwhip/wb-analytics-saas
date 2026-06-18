@@ -9,6 +9,7 @@ class UserOut(BaseModel):
     is_active: bool
     wb_token_connected: bool = False
     telegram_chat_id: int | None = None
+    telegram_username: str | None = None
 
 
 class WBTokenIn(BaseModel):

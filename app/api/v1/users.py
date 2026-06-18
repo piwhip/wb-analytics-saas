@@ -17,6 +17,7 @@ def _to_out(user) -> UserOut:
         is_active=user.is_active,
         wb_token_connected=bool(user.wb_token_encrypted),
         telegram_chat_id=user.telegram_chat_id,
+        telegram_username=user.telegram_username,
     )
 
 

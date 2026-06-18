@@ -14,7 +14,15 @@ STATIC_DIR = Path(__file__).parent / "static"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Регистрируем Telegram webhook, если задан токен и публичный адрес.
+    if settings.TELEGRAM_BOT_TOKEN and settings.PUBLIC_BASE_URL:
+        try:
+            from app.services.telegram import set_webhook
 
+            base = settings.PUBLIC_BASE_URL.rstrip("/")
+            await set_webhook(f"{base}{settings.API_V1_PREFIX}/telegram/webhook")
+        except Exception:  # noqa: BLE001 — старт не должен падать из-за Telegram
+            pass
     yield
 
 

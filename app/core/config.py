@@ -1,6 +1,7 @@
+import hashlib
 from functools import lru_cache
 
-from pydantic import Field, computed_field
+from pydantic import AliasChoices, Field, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -32,6 +33,18 @@ class Settings(BaseSettings):
     WB_STATISTICS_BASE_URL: str = "https://statistics-api.wildberries.ru"
 
     TELEGRAM_BOT_TOKEN: str = ""
+
+    # Публичный адрес сервиса (Render задаёт RENDER_EXTERNAL_URL автоматически).
+    PUBLIC_BASE_URL: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("PUBLIC_BASE_URL", "RENDER_EXTERNAL_URL"),
+    )
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def TELEGRAM_WEBHOOK_SECRET(self) -> str:
+        # Детерминированный секрет из SECRET_KEY — Telegram вернёт его в заголовке.
+        return hashlib.sha256(self.SECRET_KEY.encode()).hexdigest()[:32]
 
     @computed_field  # type: ignore[prop-decorator]
     @property

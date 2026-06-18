@@ -237,13 +237,12 @@
       <h2>🤖 Telegram-уведомления</h2>
       <div class="sub">Дневные сводки и алерты о низких остатках</div>
       <div id="tgStatus" class="status off">⚪ Проверяем…</div>
-      <label>Ваш Telegram chat_id</label>
-      <input id="tgChat" type="text" inputmode="numeric" placeholder="например, 123456789" />
-      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
-        <button class="btn btn-primary btn-sm" id="tgBtn" onclick="linkTelegram()">Привязать</button>
+      <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" id="tgBtn" onclick="connectTelegram()">Подключить Telegram</button>
         <button class="btn btn-ghost btn-sm" onclick="testTelegram()">Отправить тест</button>
       </div>
-      <p class="hint">Узнать chat_id: напишите боту <b>@userinfobot</b> в Telegram — он пришлёт ваш ID.</p>
+      <p class="hint">Нажмите «Подключить» → откроется бот <b>@wb_analytic_swaggerbot</b> →
+        нажмите <b>Старт</b>. Аккаунт привяжется сам, вводить ничего не нужно.</p>
     </div>
   </div>
 </main>
@@ -377,8 +376,13 @@ function renderStatus(me) {
   wb.textContent = me.wb_token_connected ? "✅ Кабинет подключён" : "⚪ Не подключён";
   wb.className = "status " + (me.wb_token_connected ? "on" : "off");
   const tg = document.getElementById("tgStatus");
-  tg.textContent = me.telegram_chat_id ? "✅ Привязан: " + me.telegram_chat_id : "⚪ Не привязан";
-  tg.className = "status " + (me.telegram_chat_id ? "on" : "off");
+  if (me.telegram_chat_id) {
+    tg.textContent = "✅ Привязан" + (me.telegram_username ? ": @" + me.telegram_username : "");
+    tg.className = "status on";
+  } else {
+    tg.textContent = "⚪ Не привязан";
+    tg.className = "status off";
+  }
 }
 
 async function refreshStatus() {
@@ -402,17 +406,35 @@ async function connectWb() {
   finally { btn.disabled = false; btn.textContent = "Подключить и загрузить"; }
 }
 
-async function linkTelegram() {
-  const chat = document.getElementById("tgChat").value.trim();
-  if (!chat || isNaN(Number(chat))) { toast("Введите числовой chat_id", true); return; }
+async function connectTelegram() {
   const btn = document.getElementById("tgBtn");
   btn.disabled = true;
   try {
-    await api("/users/me/telegram", { method: "PUT", body: { telegram_chat_id: Number(chat) } });
-    toast("Telegram привязан");
-    await refreshStatus();
-  } catch (err) { toast(err.message, true); }
-  finally { btn.disabled = false; }
+    const { deep_link } = await api("/telegram/link", { method: "POST" });
+    window.open(deep_link, "_blank");
+    toast("Откройте бота и нажмите «Старт» — привязка произойдёт автоматически");
+    pollTelegram();
+  } catch (err) {
+    toast(err.message, true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function pollTelegram() {
+  let tries = 0;
+  const timer = setInterval(async () => {
+    tries++;
+    try {
+      const me = await api("/users/me");
+      if (me.telegram_chat_id) {
+        renderStatus(me);
+        toast("✅ Telegram подключён!");
+        clearInterval(timer);
+      }
+    } catch {}
+    if (tries >= 30) clearInterval(timer);
+  }, 3000);
 }
 
 async function testTelegram() {

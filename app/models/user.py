@@ -15,6 +15,8 @@ class User(Base):
     wb_token_encrypted: Mapped[str | None] = mapped_column(String(512), default=None)
 
     telegram_chat_id: Mapped[int | None] = mapped_column(BigInteger, default=None)
+    telegram_username: Mapped[str | None] = mapped_column(String(255), default=None)
+    tg_link_token: Mapped[str | None] = mapped_column(String(32), default=None, index=True)
 
     sales: Mapped[list["Sale"]] = relationship(  # noqa: F821
         back_populates="user", cascade="all, delete-orphan"
