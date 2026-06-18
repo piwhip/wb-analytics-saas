@@ -4,141 +4,240 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>WB Analytics — аналитика продаж Wildberries</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;600;700;800&display=swap" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <style>
   :root {
-    --violet: #7c3aed;
-    --violet-d: #5b21b6;
-    --pink: #cb11ab;
-    --bg: #f5f4fb;
-    --card: #ffffff;
-    --text: #1e1b2e;
-    --muted: #6b6880;
-    --border: #e7e4f2;
-    --green: #16a34a;
-    --red: #dc2626;
-    --shadow: 0 1px 3px rgba(30, 27, 46, .06), 0 8px 24px rgba(124, 58, 237, .06);
+    --bg: #07060d;
+    --violet: #8b5cf6;
+    --magenta: #d946ef;
+    --cyan: #22d3ee;
+    --text: #f3f1fb;
+    --muted: #9d98b8;
+    --card: rgba(255,255,255,.045);
+    --card-2: rgba(255,255,255,.06);
+    --border: rgba(255,255,255,.10);
+    --green: #34d399;
+    --red: #fb7185;
+    --grad: linear-gradient(120deg, #8b5cf6 0%, #d946ef 55%, #f472b6 100%);
+    --radius: 18px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: var(--bg); color: var(--text); line-height: 1.5;
+    font-family: "Manrope", -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6;
+    overflow-x: hidden; -webkit-font-smoothing: antialiased;
   }
-  a { color: var(--violet); }
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  h1, h2, h3, .display { font-family: "Unbounded", sans-serif; letter-spacing: -.02em; }
+  a { color: var(--violet); text-decoration: none; }
+  .wrap { max-width: 1140px; margin: 0 auto; padding: 0 22px; }
 
-  /* Header */
-  header {
-    background: linear-gradient(135deg, var(--violet) 0%, var(--pink) 100%);
-    color: #fff; padding: 14px 0;
-  }
-  .nav { display: flex; align-items: center; justify-content: space-between; }
-  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
-  .brand .logo { width: 32px; height: 32px; border-radius: 9px; background: rgba(255,255,255,.2);
-    display: grid; place-items: center; font-size: 18px; }
-  .nav-right { display: flex; align-items: center; gap: 14px; font-size: 14px; }
-  .nav-right a { color: rgba(255,255,255,.85); text-decoration: none; }
-  .nav-right a:hover { color: #fff; }
-  #userBadge { display: none; align-items: center; gap: 10px; }
-  #userEmail { opacity: .9; font-size: 13px; }
+  /* Aurora background */
+  .aurora { position: fixed; inset: 0; z-index: -2; overflow: hidden; }
+  .blob { position: absolute; border-radius: 50%; filter: blur(90px); opacity: .55;
+    will-change: transform; }
+  .blob.b1 { width: 540px; height: 540px; background: #7c3aed; top: -160px; left: -120px;
+    animation: drift1 22s ease-in-out infinite; }
+  .blob.b2 { width: 480px; height: 480px; background: #d946ef; top: 60px; right: -140px;
+    animation: drift2 26s ease-in-out infinite; }
+  .blob.b3 { width: 420px; height: 420px; background: #22d3ee; top: 620px; left: 30%;
+    opacity: .3; animation: drift3 30s ease-in-out infinite; }
+  .grain { position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .5;
+    background-image: radial-gradient(circle at 50% 0%, rgba(139,92,246,.10), transparent 60%); }
+  @keyframes drift1 { 50% { transform: translate(120px, 90px) scale(1.1); } }
+  @keyframes drift2 { 50% { transform: translate(-100px, 120px) scale(1.05); } }
+  @keyframes drift3 { 50% { transform: translate(80px, -80px) scale(1.12); } }
 
-  /* Hero */
-  .hero { padding: 56px 0 40px; text-align: center; }
-  .hero h1 { font-size: 40px; line-height: 1.15; letter-spacing: -.5px; }
-  .hero h1 .grad { background: linear-gradient(135deg, var(--violet), var(--pink));
-    -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .hero p { color: var(--muted); font-size: 18px; max-width: 620px; margin: 16px auto 0; }
-  .features { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 26px; }
-  .chip { background: #fff; border: 1px solid var(--border); border-radius: 999px;
-    padding: 8px 16px; font-size: 14px; color: var(--text); box-shadow: var(--shadow); }
+  /* Nav */
+  nav { position: sticky; top: 0; z-index: 30; backdrop-filter: blur(14px);
+    background: rgba(7,6,13,.55); border-bottom: 1px solid var(--border); }
+  .nav-in { display: flex; align-items: center; justify-content: space-between; height: 66px; }
+  .brand { display: flex; align-items: center; gap: 11px; font-family: "Unbounded";
+    font-weight: 700; font-size: 17px; }
+  .brand .logo { width: 34px; height: 34px; border-radius: 10px; background: var(--grad);
+    display: grid; place-items: center; font-size: 17px; box-shadow: 0 4px 16px rgba(217,70,239,.4); }
+  .nav-right { display: flex; align-items: center; gap: 18px; font-size: 14px; }
+  .nav-right a { color: var(--muted); transition: color .2s; }
+  .nav-right a:hover { color: var(--text); }
+  #userBadge { display: none; align-items: center; gap: 12px; }
+  #userEmail { color: var(--muted); font-size: 13px; }
 
   /* Buttons */
-  .btn { border: none; border-radius: 11px; padding: 13px 22px; font-size: 15px; font-weight: 600;
-    cursor: pointer; transition: transform .05s, box-shadow .15s, opacity .15s; font-family: inherit; }
-  .btn:active { transform: translateY(1px); }
-  .btn-primary { background: linear-gradient(135deg, var(--violet), var(--pink)); color: #fff;
-    box-shadow: 0 6px 18px rgba(124,58,237,.35); }
-  .btn-primary:hover { box-shadow: 0 8px 24px rgba(124,58,237,.45); }
-  .btn-ghost { background: #fff; color: var(--violet); border: 1.5px solid var(--border); }
-  .btn-ghost:hover { border-color: var(--violet); }
-  .btn-sm { padding: 8px 14px; font-size: 13px; border-radius: 9px; }
-  .btn:disabled { opacity: .6; cursor: not-allowed; }
-  .cta { display: flex; gap: 14px; justify-content: center; margin-top: 32px; flex-wrap: wrap; }
+  .btn { border: none; border-radius: 13px; padding: 14px 26px; font-size: 15px; font-weight: 700;
+    cursor: pointer; font-family: inherit; transition: transform .12s, box-shadow .25s, opacity .2s;
+    position: relative; }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--grad); color: #fff; background-size: 180% 180%;
+    box-shadow: 0 10px 30px rgba(168,85,247,.45); animation: shimmer 6s ease infinite; }
+  .btn-primary:hover { box-shadow: 0 14px 40px rgba(217,70,239,.6); transform: translateY(-2px); }
+  @keyframes shimmer { 50% { background-position: 100% 50%; } }
+  .btn-ghost { background: var(--card-2); color: var(--text); border: 1px solid var(--border);
+    backdrop-filter: blur(8px); }
+  .btn-ghost:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.25); }
+  .btn-sm { padding: 9px 16px; font-size: 13px; border-radius: 10px; box-shadow: none; animation: none; }
+  .btn-sm.btn-primary { box-shadow: 0 6px 18px rgba(168,85,247,.4); }
+  .btn:disabled { opacity: .55; cursor: not-allowed; }
 
-  /* Cards / sections */
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px;
-    box-shadow: var(--shadow); padding: 22px; }
-  .section { margin-bottom: 22px; }
-  .section h2 { font-size: 18px; margin-bottom: 4px; }
-  .section .sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+  /* Hero */
+  .hero { padding: 76px 0 60px; display: grid; grid-template-columns: 1.05fr .95fr; gap: 50px;
+    align-items: center; }
+  .badge-pill { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600;
+    color: #e9d5ff; background: rgba(139,92,246,.14); border: 1px solid rgba(139,92,246,.3);
+    padding: 7px 14px; border-radius: 999px; margin-bottom: 24px; }
+  .badge-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+    box-shadow: 0 0 0 0 rgba(52,211,153,.6); animation: pulse 2s infinite; }
+  @keyframes pulse { 70% { box-shadow: 0 0 0 8px rgba(52,211,153,0); } }
+  .hero h1 { font-size: clamp(34px, 5vw, 60px); line-height: 1.05; font-weight: 800; }
+  .hero h1 .grad { background: var(--grad); background-size: 200% auto;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: shimmer 5s ease infinite; }
+  .hero .lead { color: var(--muted); font-size: 19px; max-width: 520px; margin: 24px 0 34px; }
+  .cta { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+  .cta .note { color: var(--muted); font-size: 13px; margin-top: 16px; flex-basis: 100%; }
+  .trust { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 34px; }
+  .chip { font-size: 13px; color: var(--text); background: var(--card);
+    border: 1px solid var(--border); border-radius: 999px; padding: 8px 15px; backdrop-filter: blur(6px); }
+
+  /* Hero preview mock */
+  .preview { background: linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
+    border: 1px solid var(--border); border-radius: 24px; padding: 22px; backdrop-filter: blur(18px);
+    box-shadow: 0 30px 80px rgba(0,0,0,.5); animation: float 7s ease-in-out infinite; }
+  @keyframes float { 50% { transform: translateY(-14px); } }
+  .preview .pv-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+  .preview .pv-title { font-family: "Unbounded"; font-size: 14px; font-weight: 600; }
+  .preview .pv-dots { display: flex; gap: 6px; }
+  .preview .pv-dots i { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,.18); }
+  .pv-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+  .pv-kpi { background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 13px; padding: 14px; }
+  .pv-kpi .l { font-size: 11px; color: var(--muted); }
+  .pv-kpi .v { font-family: "Unbounded"; font-size: 21px; font-weight: 700; margin-top: 4px; }
+  .pv-kpi .v.g { color: var(--green); }
+  .pv-bars { display: flex; align-items: flex-end; gap: 8px; height: 110px; padding-top: 6px; }
+  .pv-bars span { flex: 1; border-radius: 6px 6px 0 0; background: var(--grad); opacity: .9;
+    transform-origin: bottom; animation: grow 1.1s cubic-bezier(.2,.8,.2,1) backwards; }
+  @keyframes grow { from { transform: scaleY(0); } }
+
+  /* Sections */
+  .sec { padding: 30px 0; }
+  .sec-head { text-align: center; max-width: 640px; margin: 0 auto 44px; }
+  .sec-head h2 { font-size: clamp(26px, 3.4vw, 38px); font-weight: 700; }
+  .sec-head p { color: var(--muted); font-size: 17px; margin-top: 14px; }
+  .kicker { font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+    background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+  .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .feature { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 26px; transition: transform .3s, border-color .3s, background .3s; }
+  .feature:hover { transform: translateY(-6px); border-color: rgba(139,92,246,.4);
+    background: var(--card-2); }
+  .feature .ic { width: 50px; height: 50px; border-radius: 14px; display: grid; place-items: center;
+    font-size: 24px; background: rgba(139,92,246,.15); border: 1px solid rgba(139,92,246,.25); margin-bottom: 16px; }
+  .feature h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; font-family: "Manrope"; }
+  .feature p { color: var(--muted); font-size: 14px; }
+
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .step { position: relative; padding: 26px; border-radius: var(--radius);
+    background: var(--card); border: 1px solid var(--border); }
+  .step .n { font-family: "Unbounded"; font-size: 40px; font-weight: 800;
+    background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent;
+    line-height: 1; margin-bottom: 12px; }
+  .step h3 { font-size: 16px; margin-bottom: 6px; font-family: "Manrope"; }
+  .step p { color: var(--muted); font-size: 14px; }
 
   /* Auth */
-  #authCard { max-width: 420px; margin: 0 auto; }
-  .tabs { display: flex; gap: 6px; background: var(--bg); padding: 4px; border-radius: 11px; margin-bottom: 18px; }
-  .tabs button { flex: 1; border: none; background: transparent; padding: 9px; border-radius: 8px;
-    font-weight: 600; cursor: pointer; color: var(--muted); font-family: inherit; font-size: 14px; }
-  .tabs button.active { background: #fff; color: var(--violet); box-shadow: var(--shadow); }
-  label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; }
-  input { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 10px;
-    font-size: 15px; font-family: inherit; transition: border-color .15s; }
-  input:focus { outline: none; border-color: var(--violet); }
-  .form-btn { width: 100%; margin-top: 20px; }
-  .divider { text-align: center; color: var(--muted); font-size: 13px; margin: 18px 0;
-    position: relative; }
-  .divider span { background: #fff; padding: 0 12px; position: relative; z-index: 1; }
-  .divider::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px;
-    background: var(--border); }
+  #authCard { max-width: 440px; margin: 0 auto; background: var(--card);
+    border: 1px solid var(--border); border-radius: 22px; padding: 30px; backdrop-filter: blur(18px);
+    box-shadow: 0 24px 60px rgba(0,0,0,.45); }
+  .tabs { display: flex; gap: 6px; background: rgba(255,255,255,.04); padding: 5px;
+    border-radius: 13px; margin-bottom: 22px; }
+  .tabs button { flex: 1; border: none; background: transparent; padding: 11px; border-radius: 9px;
+    font-weight: 700; cursor: pointer; color: var(--muted); font-family: inherit; font-size: 14px; transition: .2s; }
+  .tabs button.active { background: var(--grad); color: #fff; box-shadow: 0 6px 16px rgba(168,85,247,.4); }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 16px 0 7px; color: var(--muted); }
+  input { width: 100%; padding: 13px 15px; border: 1px solid var(--border); border-radius: 11px;
+    font-size: 15px; font-family: inherit; background: rgba(255,255,255,.03); color: var(--text);
+    transition: border-color .2s, box-shadow .2s; }
+  input::placeholder { color: #6b6786; }
+  input:focus { outline: none; border-color: var(--violet); box-shadow: 0 0 0 3px rgba(139,92,246,.18); }
+  .form-btn { width: 100%; margin-top: 22px; }
+
+  /* Reveal on scroll */
+  .reveal { opacity: 0; transform: translateY(28px); transition: opacity .7s cubic-bezier(.2,.7,.2,1),
+    transform .7s cubic-bezier(.2,.7,.2,1); }
+  .reveal.in { opacity: 1; transform: none; }
+  .hero-anim { opacity: 0; transform: translateY(20px); animation: heroIn .8s cubic-bezier(.2,.7,.2,1) forwards; }
+  @keyframes heroIn { to { opacity: 1; transform: none; } }
 
   /* Dashboard */
-  #dashboard { display: none; }
+  #dashboard { display: none; padding-top: 34px; }
   .toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
-    gap: 12px; margin-bottom: 22px; }
+    gap: 12px; margin-bottom: 26px; }
+  .toolbar h2 { font-size: 26px; }
   .toolbar .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 24px; backdrop-filter: blur(12px); }
+  .card > h2 { font-size: 17px; margin-bottom: 3px; font-family: "Manrope"; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
   .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 22px; }
-  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 16px;
-    padding: 18px 20px; box-shadow: var(--shadow); }
-  .kpi .label { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
-  .kpi .value { font-size: 26px; font-weight: 700; letter-spacing: -.5px; }
+  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px 22px; position: relative; overflow: hidden; }
+  .kpi::after { content: ""; position: absolute; top: -40px; right: -40px; width: 120px; height: 120px;
+    background: radial-gradient(circle, rgba(139,92,246,.22), transparent 70%); }
+  .kpi .label { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+  .kpi .value { font-family: "Unbounded"; font-size: 27px; font-weight: 700; }
   .kpi .value.green { color: var(--green); }
-  .grid-2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 22px; }
+  .grid-2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 22px; margin-bottom: 22px; }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
-  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; }
-  td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
-  .badge { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
-  .badge.low { background: #fee2e2; color: var(--red); }
-  .badge.ok { background: #dcfce7; color: var(--green); }
+  th, td { text-align: left; padding: 11px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+  .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .badge.low { background: rgba(251,113,133,.16); color: var(--red); }
+  .badge.ok { background: rgba(52,211,153,.16); color: var(--green); }
   .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 30px 0; }
-  .hint { color: var(--muted); font-size: 12px; margin-top: 10px; line-height: 1.45; }
-  .status { font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 12px; line-height: 1.5; }
+  .status { font-size: 13px; font-weight: 700; margin-bottom: 12px; }
   .status.on { color: var(--green); }
   .status.off { color: var(--muted); }
 
   /* Toast */
-  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(120%);
-    background: var(--text); color: #fff; padding: 13px 20px; border-radius: 11px; font-size: 14px;
-    box-shadow: 0 10px 30px rgba(0,0,0,.25); transition: transform .25s; z-index: 50; max-width: 90vw; }
+  #toast { position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%) translateY(140%);
+    background: rgba(20,18,30,.92); color: #fff; padding: 14px 22px; border-radius: 13px; font-size: 14px;
+    font-weight: 600; border: 1px solid var(--border); backdrop-filter: blur(12px);
+    box-shadow: 0 16px 40px rgba(0,0,0,.5); transition: transform .3s cubic-bezier(.2,.8,.2,1);
+    z-index: 60; max-width: 90vw; }
   #toast.show { transform: translateX(-50%) translateY(0); }
-  #toast.err { background: var(--red); }
+  #toast.err { border-color: rgba(251,113,133,.5); }
 
-  footer { text-align: center; color: var(--muted); font-size: 13px; padding: 40px 0 50px; }
-  .spinner { display: inline-block; width: 15px; height: 15px; border: 2px solid rgba(255,255,255,.4);
+  footer { text-align: center; color: var(--muted); font-size: 13px; padding: 56px 0 60px;
+    border-top: 1px solid var(--border); margin-top: 40px; }
+  .spinner { display: inline-block; width: 15px; height: 15px; border: 2px solid rgba(255,255,255,.35);
     border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: -2px; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  @media (max-width: 760px) {
-    .hero h1 { font-size: 30px; }
+  @media (max-width: 880px) {
+    .hero { grid-template-columns: 1fr; gap: 36px; padding: 48px 0 30px; }
+    .preview { max-width: 460px; }
+    .features-grid, .steps { grid-template-columns: 1fr; }
     .kpis { grid-template-columns: repeat(2, 1fr); }
     .grid-2 { grid-template-columns: 1fr; }
+    .nav-right a.hide-sm { display: none; }
   }
 </style>
 </head>
 <body>
-<header>
-  <div class="wrap nav">
+<div class="aurora"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+<div class="grain"></div>
+
+<nav>
+  <div class="wrap nav-in">
     <div class="brand"><span class="logo">📊</span> WB Analytics</div>
     <div class="nav-right">
-      <a href="/docs" target="_blank">API / Swagger</a>
+      <a href="#features" class="hide-sm">Возможности</a>
+      <a href="/docs" target="_blank" class="hide-sm">API</a>
       <a href="https://github.com/piwhip/wb-analytics-saas" target="_blank">GitHub</a>
       <div id="userBadge">
         <span id="userEmail"></span>
@@ -146,29 +245,84 @@
       </div>
     </div>
   </div>
-</header>
+</nav>
 
 <!-- LANDING -->
 <main id="landing">
-  <div class="wrap hero">
-    <h1>Аналитика продаж <span class="grad">Wildberries</span><br>в одном окне</h1>
-    <p>Подключите кабинет WB — и получите выручку, динамику продаж, топ товаров
-       и оповещения о заканчивающихся остатках. Без Excel и ручной возни.</p>
-    <div class="features">
-      <span class="chip">📈 Динамика продаж</span>
-      <span class="chip">💰 Выручка и средний чек</span>
-      <span class="chip">🏆 Топ товаров</span>
-      <span class="chip">📦 Контроль остатков</span>
-      <span class="chip">🤖 Telegram-уведомления</span>
+  <section class="wrap hero">
+    <div>
+      <div class="badge-pill hero-anim"><span class="dot"></span> Аналитика в реальном времени</div>
+      <h1 class="hero-anim" style="animation-delay:.05s">
+        Продажи <span class="grad">Wildberries</span><br>под полным контролем
+      </h1>
+      <p class="lead hero-anim" style="animation-delay:.12s">
+        Подключите кабинет WB — и получите выручку, динамику продаж, топ товаров
+        и оповещения о заканчивающихся остатках. Без таблиц и ручной возни.
+      </p>
+      <div class="cta hero-anim" style="animation-delay:.18s">
+        <button class="btn btn-primary" id="demoBtn" onclick="runDemo()">⚡ Запустить демо за 1 клик</button>
+        <button class="btn btn-ghost" onclick="scrollToAuth()">Войти</button>
+        <span class="note">Демо создаст тестовый аккаунт с примерами продаж — вводить ничего не нужно.</span>
+      </div>
+      <div class="trust hero-anim" style="animation-delay:.24s">
+        <span class="chip">📈 Динамика</span>
+        <span class="chip">💰 Выручка</span>
+        <span class="chip">🏆 Топ товаров</span>
+        <span class="chip">📦 Остатки</span>
+        <span class="chip">🤖 Telegram</span>
+      </div>
     </div>
-    <div class="cta">
-      <button class="btn btn-primary" id="demoBtn" onclick="runDemo()">⚡ Запустить демо за 1 клик</button>
+    <div class="hero-anim" style="animation-delay:.2s">
+      <div class="preview">
+        <div class="pv-head">
+          <span class="pv-title">Дашборд продаж</span>
+          <span class="pv-dots"><i></i><i></i><i></i></span>
+        </div>
+        <div class="pv-kpis">
+          <div class="pv-kpi"><div class="l">Выручка</div><div class="v g">191 877 ₽</div></div>
+          <div class="pv-kpi"><div class="l">Продаж</div><div class="v">104</div></div>
+          <div class="pv-kpi"><div class="l">Средний чек</div><div class="v">1 845 ₽</div></div>
+          <div class="pv-kpi"><div class="l">К перечислению</div><div class="v">159 258 ₽</div></div>
+        </div>
+        <div class="pv-bars" id="pvBars"></div>
+      </div>
     </div>
-    <p style="font-size:13px;margin-top:14px">Демо создаст тестовый аккаунт и заполнит его примерами продаж — ничего вводить не нужно.</p>
-  </div>
+  </section>
 
-  <div class="wrap section" id="authSection" style="margin-top:20px">
-    <div class="card" id="authCard">
+  <section class="sec wrap" id="features">
+    <div class="sec-head reveal">
+      <div class="kicker">Возможности</div>
+      <h2>Всё, что нужно селлеру — в одном окне</h2>
+      <p>Никаких выгрузок в Excel: метрики считаются автоматически и обновляются по расписанию.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature reveal"><div class="ic">📈</div><h3>Динамика продаж</h3><p>Выручка по дням на интерактивном графике — видно тренды и провалы.</p></div>
+      <div class="feature reveal"><div class="ic">💰</div><h3>Ключевые метрики</h3><p>Выручка, число продаж, средний чек и сумма к перечислению за период.</p></div>
+      <div class="feature reveal"><div class="ic">🏆</div><h3>Топ товаров</h3><p>Какие артикулы приносят больше всего выручки — сразу видно лидеров.</p></div>
+      <div class="feature reveal"><div class="ic">📦</div><h3>Контроль остатков</h3><p>Список SKU, которые вот-вот закончатся на складах WB.</p></div>
+      <div class="feature reveal"><div class="ic">🔄</div><h3>Авто-синхронизация</h3><p>Данные подтягиваются из WB API в фоне — всегда актуальны.</p></div>
+      <div class="feature reveal"><div class="ic">🤖</div><h3>Telegram-алерты</h3><p>Дневные сводки и уведомления о низких остатках прямо в мессенджер.</p></div>
+    </div>
+  </section>
+
+  <section class="sec wrap">
+    <div class="sec-head reveal">
+      <div class="kicker">Как это работает</div>
+      <h2>Запуск за три шага</h2>
+    </div>
+    <div class="steps">
+      <div class="step reveal"><div class="n">01</div><h3>Регистрация</h3><p>Создайте аккаунт за 10 секунд — только email и пароль.</p></div>
+      <div class="step reveal"><div class="n">02</div><h3>Подключение WB</h3><p>Вставьте API-токен кабинета — мы зашифруем его и загрузим продажи.</p></div>
+      <div class="step reveal"><div class="n">03</div><h3>Аналитика</h3><p>Смотрите дашборд и получайте уведомления в Telegram.</p></div>
+    </div>
+  </section>
+
+  <section class="sec wrap" id="authSection">
+    <div class="sec-head reveal">
+      <div class="kicker">Начать</div>
+      <h2>Войдите или создайте аккаунт</h2>
+    </div>
+    <div id="authCard" class="reveal">
       <div class="tabs">
         <button id="tabLogin" class="active" onclick="switchTab('login')">Вход</button>
         <button id="tabReg" onclick="switchTab('reg')">Регистрация</button>
@@ -181,15 +335,15 @@
         <button class="btn btn-primary form-btn" id="authSubmit" type="submit">Войти</button>
       </form>
     </div>
-  </div>
+  </section>
 </main>
 
 <!-- DASHBOARD -->
-<main id="dashboard" class="wrap" style="padding-top:30px">
+<main id="dashboard" class="wrap">
   <div class="toolbar">
     <div>
-      <h2 style="font-size:22px">Дашборд продаж</h2>
-      <div class="sub" style="color:var(--muted);font-size:13px" id="periodLabel">за последние 30 дней</div>
+      <h2>Дашборд продаж</h2>
+      <div class="sub" id="periodLabel" style="margin-bottom:0">за последние 30 дней</div>
     </div>
     <div class="actions">
       <button class="btn btn-ghost btn-sm" id="seedBtn" onclick="seedData()">➕ Демо-данные</button>
@@ -200,40 +354,40 @@
   <div class="kpis" id="kpis"></div>
 
   <div class="grid-2">
-    <div class="card section">
+    <div class="card">
       <h2>Динамика выручки</h2>
       <div class="sub">по дням, ₽</div>
       <canvas id="chart" height="120"></canvas>
     </div>
-    <div class="card section">
+    <div class="card">
       <h2>Заканчивается на складе</h2>
       <div class="sub">остаток ≤ 5 шт.</div>
       <div id="lowStock"></div>
     </div>
   </div>
 
-  <div class="card section">
+  <div class="card" style="margin-bottom:22px">
     <h2>Топ товаров по выручке</h2>
     <div class="sub">за период</div>
     <div id="topProducts"></div>
   </div>
 
-  <h2 style="font-size:20px;margin:30px 0 4px">Подключения</h2>
-  <div class="sub" style="color:var(--muted);font-size:13px;margin-bottom:16px">
-    Подключите свой кабинет WB для анализа реальных продаж и Telegram для уведомлений
+  <h2 style="font-size:20px;margin:34px 0 4px">Подключения</h2>
+  <div class="sub" style="margin-bottom:18px">
+    Подключите кабинет WB для анализа реальных продаж и Telegram для уведомлений
   </div>
   <div class="grid-2">
-    <div class="card section">
+    <div class="card">
       <h2>🛒 Кабинет Wildberries</h2>
-      <div class="sub">Загрузка ваших реальных продаж по API-токену</div>
+      <div class="sub">Загрузка реальных продаж по API-токену</div>
       <div id="wbStatus" class="status off">⚪ Проверяем…</div>
       <label>WB API-токен (категория «Статистика»)</label>
       <input id="wbToken" type="password" placeholder="eyJhbGciOiJFUzI1NiIs..." />
       <button class="btn btn-primary btn-sm" style="margin-top:14px" id="wbBtn" onclick="connectWb()">Подключить и загрузить</button>
       <p class="hint">Где взять: кабинет продавца WB → <b>Настройки → Доступ к API</b> →
-        создать токен с категорией <b>«Статистика»</b>. Токен хранится в зашифрованном виде.</p>
+        токен с категорией <b>«Статистика»</b>. Хранится в зашифрованном виде.</p>
     </div>
-    <div class="card section">
+    <div class="card">
       <h2>🤖 Telegram-уведомления</h2>
       <div class="sub">Дневные сводки и алерты о низких остатках</div>
       <div id="tgStatus" class="status off">⚪ Проверяем…</div>
@@ -242,7 +396,7 @@
         <button class="btn btn-ghost btn-sm" onclick="testTelegram()">Отправить тест</button>
       </div>
       <p class="hint">Нажмите «Подключить» → откроется бот <b>@wb_analytic_swaggerbot</b> →
-        нажмите <b>Старт</b>. Аккаунт привяжется сам, вводить ничего не нужно.</p>
+        нажмите <b>Старт</b>. Аккаунт привяжется сам.</p>
     </div>
   </div>
 </main>
@@ -250,7 +404,7 @@
 <div id="toast"></div>
 
 <footer>
-  WB Analytics SaaS · FastAPI · PostgreSQL · Docker — учебный проект для портфолио
+  WB Analytics SaaS · FastAPI · PostgreSQL · Celery · Docker — учебный проект для портфолио
 </footer>
 
 <script>
@@ -259,15 +413,15 @@ let token = localStorage.getItem("wb_token") || null;
 let chart = null;
 let authMode = "login";
 
-const fmtMoney = n => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(n) + " ₽";
-const fmtNum = n => new Intl.NumberFormat("ru-RU").format(n);
+const fmtMoney = n => new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 }).format(Math.round(n)) + " ₽";
+const fmtNum = n => new Intl.NumberFormat("ru-RU").format(Math.round(n));
 
 function toast(msg, isErr = false) {
   const t = document.getElementById("toast");
   t.textContent = msg;
   t.className = "show" + (isErr ? " err" : "");
   clearTimeout(t._t);
-  t._t = setTimeout(() => (t.className = ""), 3500);
+  t._t = setTimeout(() => (t.className = ""), 3800);
 }
 
 async function api(path, { method = "GET", body, auth = true, form = false } = {}) {
@@ -470,16 +624,30 @@ async function loadDashboard() {
   }
 }
 
+function countUp(el, target, fmt) {
+  const dur = 900, start = performance.now();
+  function tick(now) {
+    const p = Math.min((now - start) / dur, 1);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = fmt(target * eased);
+    if (p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
 function renderKpis(s) {
   const cards = [
-    { label: "Выручка (продажи)", value: fmtMoney(s.sales_revenue), green: true },
-    { label: "Продаж", value: fmtNum(s.sales_count) },
-    { label: "Средний чек", value: fmtMoney(s.avg_check) },
-    { label: "К перечислению", value: fmtMoney(s.for_pay_total) },
+    { label: "Выручка (продажи)", value: s.sales_revenue, fmt: fmtMoney, green: true },
+    { label: "Продаж", value: s.sales_count, fmt: fmtNum },
+    { label: "Средний чек", value: s.avg_check, fmt: fmtMoney },
+    { label: "К перечислению", value: s.for_pay_total, fmt: fmtMoney },
   ];
-  document.getElementById("kpis").innerHTML = cards.map(c =>
+  const box = document.getElementById("kpis");
+  box.innerHTML = cards.map(c =>
     `<div class="kpi"><div class="label">${c.label}</div>
-     <div class="value ${c.green ? "green" : ""}">${c.value}</div></div>`).join("");
+     <div class="value ${c.green ? "green" : ""}">0</div></div>`).join("");
+  const vals = box.querySelectorAll(".value");
+  cards.forEach((c, i) => countUp(vals[i], c.value, c.fmt));
 }
 
 function renderChart(dyn) {
@@ -491,19 +659,20 @@ function renderChart(dyn) {
   if (chart) chart.destroy();
   const ctx = document.getElementById("chart");
   const grad = ctx.getContext("2d").createLinearGradient(0, 0, 0, 240);
-  grad.addColorStop(0, "rgba(124,58,237,.35)");
-  grad.addColorStop(1, "rgba(124,58,237,0)");
+  grad.addColorStop(0, "rgba(168,85,247,.45)");
+  grad.addColorStop(1, "rgba(168,85,247,0)");
   chart = new Chart(ctx, {
     type: "line",
     data: { labels, datasets: [{ data, fill: true, backgroundColor: grad,
-      borderColor: "#7c3aed", borderWidth: 2.5, tension: .35, pointRadius: 0,
-      pointHoverRadius: 5, pointHoverBackgroundColor: "#7c3aed" }] },
+      borderColor: "#c084fc", borderWidth: 2.5, tension: .38, pointRadius: 0,
+      pointHoverRadius: 5, pointHoverBackgroundColor: "#d946ef" }] },
     options: {
       plugins: { legend: { display: false },
         tooltip: { callbacks: { label: c => fmtMoney(c.parsed.y) } } },
       scales: {
-        y: { ticks: { callback: v => (v >= 1000 ? v / 1000 + "к" : v) }, grid: { color: "#f0eef8" } },
-        x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } },
+        y: { ticks: { color: "#9d98b8", callback: v => (v >= 1000 ? v / 1000 + "к" : v) },
+          grid: { color: "rgba(255,255,255,.06)" } },
+        x: { ticks: { color: "#9d98b8", maxTicksLimit: 10 }, grid: { display: false } },
       },
     },
   });
@@ -535,9 +704,25 @@ function renderLow(low) {
       <td><b>${it.supplier_article || it.nm_id || "—"}</b><br><span style="color:var(--muted);font-size:12px">${it.warehouse_name || ""}</span></td>
       <td class="num"><span class="badge ${it.quantity === 0 ? "low" : "ok"}">${it.quantity} шт.</span></td>
     </tr>`).join("");
-  document.getElementById("lowStock").innerHTML =
-    `<table><tbody>${rows}</tbody></table>`;
+  document.getElementById("lowStock").innerHTML = `<table><tbody>${rows}</tbody></table>`;
 }
+
+// Декоративные столбики в превью
+(function buildPreviewBars() {
+  const el = document.getElementById("pvBars");
+  if (!el) return;
+  const h = [40, 62, 48, 78, 55, 90, 70, 84, 60];
+  el.innerHTML = h.map((v, i) =>
+    `<span style="height:${v}%;animation-delay:${i * 0.08}s"></span>`).join("");
+})();
+
+// Появление секций при скролле
+(function initReveal() {
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); obs.unobserve(e.target); } });
+  }, { threshold: .15 });
+  document.querySelectorAll(".reveal").forEach(el => obs.observe(el));
+})();
 
 // Авто-вход, если токен сохранён
 (async function init() {
