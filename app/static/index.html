@@ -109,6 +109,10 @@
   .badge.low { background: #fee2e2; color: var(--red); }
   .badge.ok { background: #dcfce7; color: var(--green); }
   .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 30px 0; }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 10px; line-height: 1.45; }
+  .status { font-size: 13px; font-weight: 600; margin-bottom: 12px; }
+  .status.on { color: var(--green); }
+  .status.off { color: var(--muted); }
 
   /* Toast */
   #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(120%);
@@ -159,7 +163,6 @@
     </div>
     <div class="cta">
       <button class="btn btn-primary" id="demoBtn" onclick="runDemo()">⚡ Запустить демо за 1 клик</button>
-      <button class="btn btn-ghost" onclick="scrollToAuth()">У меня есть аккаунт</button>
     </div>
     <p style="font-size:13px;margin-top:14px">Демо создаст тестовый аккаунт и заполнит его примерами продаж — ничего вводить не нужно.</p>
   </div>
@@ -177,8 +180,6 @@
         <input id="password" type="password" placeholder="минимум 8 символов" minlength="8" required />
         <button class="btn btn-primary form-btn" id="authSubmit" type="submit">Войти</button>
       </form>
-      <div class="divider"><span>или</span></div>
-      <button class="btn btn-ghost" style="width:100%" onclick="runDemo()">⚡ Демо без регистрации</button>
     </div>
   </div>
 </main>
@@ -215,6 +216,35 @@
     <h2>Топ товаров по выручке</h2>
     <div class="sub">за период</div>
     <div id="topProducts"></div>
+  </div>
+
+  <h2 style="font-size:20px;margin:30px 0 4px">Подключения</h2>
+  <div class="sub" style="color:var(--muted);font-size:13px;margin-bottom:16px">
+    Подключите свой кабинет WB для анализа реальных продаж и Telegram для уведомлений
+  </div>
+  <div class="grid-2">
+    <div class="card section">
+      <h2>🛒 Кабинет Wildberries</h2>
+      <div class="sub">Загрузка ваших реальных продаж по API-токену</div>
+      <div id="wbStatus" class="status off">⚪ Проверяем…</div>
+      <label>WB API-токен (категория «Статистика»)</label>
+      <input id="wbToken" type="password" placeholder="eyJhbGciOiJFUzI1NiIs..." />
+      <button class="btn btn-primary btn-sm" style="margin-top:14px" id="wbBtn" onclick="connectWb()">Подключить и загрузить</button>
+      <p class="hint">Где взять: кабинет продавца WB → <b>Настройки → Доступ к API</b> →
+        создать токен с категорией <b>«Статистика»</b>. Токен хранится в зашифрованном виде.</p>
+    </div>
+    <div class="card section">
+      <h2>🤖 Telegram-уведомления</h2>
+      <div class="sub">Дневные сводки и алерты о низких остатках</div>
+      <div id="tgStatus" class="status off">⚪ Проверяем…</div>
+      <label>Ваш Telegram chat_id</label>
+      <input id="tgChat" type="text" inputmode="numeric" placeholder="например, 123456789" />
+      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" id="tgBtn" onclick="linkTelegram()">Привязать</button>
+        <button class="btn btn-ghost btn-sm" onclick="testTelegram()">Отправить тест</button>
+      </div>
+      <p class="hint">Узнать chat_id: напишите боту <b>@userinfobot</b> в Telegram — он пришлёт ваш ID.</p>
+    </div>
   </div>
 </main>
 
@@ -305,7 +335,7 @@ async function runDemo() {
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Готовим демо…'; }
   try {
     const rnd = Math.random().toString(36).slice(2, 10);
-    const email = `demo_${rnd}@wb.local`;
+    const email = `demo_${rnd}@wbanalytics.app`;
     const password = "demo" + rnd + "X1";
     await api("/auth/register", { method: "POST", auth: false, body: { email, password } });
     await login(email, password);
@@ -338,7 +368,58 @@ async function enterApp() {
   document.getElementById("userBadge").style.display = "flex";
   document.getElementById("landing").style.display = "none";
   document.getElementById("dashboard").style.display = "block";
+  renderStatus(me);
   await loadDashboard();
+}
+
+function renderStatus(me) {
+  const wb = document.getElementById("wbStatus");
+  wb.textContent = me.wb_token_connected ? "✅ Кабинет подключён" : "⚪ Не подключён";
+  wb.className = "status " + (me.wb_token_connected ? "on" : "off");
+  const tg = document.getElementById("tgStatus");
+  tg.textContent = me.telegram_chat_id ? "✅ Привязан: " + me.telegram_chat_id : "⚪ Не привязан";
+  tg.className = "status " + (me.telegram_chat_id ? "on" : "off");
+}
+
+async function refreshStatus() {
+  try { renderStatus(await api("/users/me")); } catch {}
+}
+
+async function connectWb() {
+  const tokenVal = document.getElementById("wbToken").value.trim();
+  if (!tokenVal) { toast("Вставьте WB-токен", true); return; }
+  const btn = document.getElementById("wbBtn");
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Проверяем…';
+  try {
+    await api("/users/me/wb-token", { method: "PUT", body: { wb_token: tokenVal } });
+    toast("Токен принят, загружаем продажи…");
+    const r = await api("/sync/run?days_back=30", { method: "POST" });
+    toast(`Загружено: ${r.sales_synced} продаж, ${r.stocks_synced} остатков`);
+    document.getElementById("wbToken").value = "";
+    await refreshStatus();
+    await loadDashboard();
+  } catch (err) { toast(err.message, true); }
+  finally { btn.disabled = false; btn.textContent = "Подключить и загрузить"; }
+}
+
+async function linkTelegram() {
+  const chat = document.getElementById("tgChat").value.trim();
+  if (!chat || isNaN(Number(chat))) { toast("Введите числовой chat_id", true); return; }
+  const btn = document.getElementById("tgBtn");
+  btn.disabled = true;
+  try {
+    await api("/users/me/telegram", { method: "PUT", body: { telegram_chat_id: Number(chat) } });
+    toast("Telegram привязан");
+    await refreshStatus();
+  } catch (err) { toast(err.message, true); }
+  finally { btn.disabled = false; }
+}
+
+async function testTelegram() {
+  try {
+    await api("/users/me/telegram/test", { method: "POST" });
+    toast("Уведомление отправлено — проверьте Telegram");
+  } catch (err) { toast(err.message, true); }
 }
 
 function logout() {

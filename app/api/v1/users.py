@@ -1,8 +1,10 @@
 from fastapi import APIRouter, HTTPException, status
 
 from app.api.deps import CurrentUser, DBSession
+from app.core.config import settings
 from app.core.security import encrypt_token
 from app.schemas.user import TelegramLinkIn, UserOut, WBTokenIn
+from app.services.telegram import send_message
 from app.services.wb_client import WBClient
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -44,3 +46,27 @@ async def link_telegram(data: TelegramLinkIn, user: CurrentUser, db: DBSession) 
     await db.commit()
     await db.refresh(user)
     return _to_out(user)
+
+
+@router.post("/me/telegram/test")
+async def test_telegram(user: CurrentUser) -> dict[str, bool]:
+    if not user.telegram_chat_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Сначала привяжите Telegram chat_id",
+        )
+    if not settings.TELEGRAM_BOT_TOKEN:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="На сервере не настроен TELEGRAM_BOT_TOKEN — уведомления отключены",
+        )
+    ok = await send_message(
+        user.telegram_chat_id,
+        "✅ <b>WB Analytics</b>\nТестовое уведомление — всё работает!",
+    )
+    if not ok:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Не удалось отправить. Проверьте chat_id и что вы написали боту /start",
+        )
+    return {"sent": True}
