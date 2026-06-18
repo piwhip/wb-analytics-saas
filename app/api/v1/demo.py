@@ -1,10 +1,14 @@
 import random
+import secrets
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Query
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import CurrentUser, DBSession
-from app.models import Order, Sale, Stock
+from app.core.security import create_access_token, create_refresh_token, hash_password
+from app.models import Order, Sale, Stock, User
+from app.schemas.auth import TokenPair
 
 router = APIRouter(prefix="/demo", tags=["demo"])
 
@@ -19,20 +23,10 @@ _WAREHOUSES = ["Коледино", "Казань", "Электросталь", "
 _REGIONS = ["Москва", "Санкт-Петербург", "Краснодар", "Новосибирск"]
 
 
-@router.post("/seed")
-async def seed_demo_data(
-    user: CurrentUser,
-    db: DBSession,
-    days: int = Query(30, ge=1, le=90),
-    sales_per_day: int = Query(8, ge=1, le=100),
-):
-    """Заполнить аккаунт случайными продажами/заказами/остатками за период.
-
-    Удобно для демонстрации аналитики без реального кабинета Wildberries.
-    """
+def _generate(user_id: int, db: AsyncSession, days: int, sales_per_day: int) -> dict:
+    """Сгенерировать и добавить (без commit) демо-продажи/заказы/остатки."""
     now = datetime.now(UTC)
-    rnd = random.Random(user.id)
-
+    rnd = random.Random(user_id)
     sales: list[Sale] = []
     orders: list[Order] = []
     counter = 0
@@ -50,8 +44,8 @@ async def seed_demo_data(
 
             orders.append(
                 Order(
-                    user_id=user.id,
-                    srid=f"demo-o-{user.id}-{counter}",
+                    user_id=user_id,
+                    srid=f"demo-o-{user_id}-{counter}",
                     nm_id=nm_id,
                     supplier_article=article,
                     brand=brand,
@@ -66,12 +60,11 @@ async def seed_demo_data(
                     last_change_date=day,
                 )
             )
-            # Часть заказов превращается в продажи.
             if rnd.random() < 0.8:
                 sales.append(
                     Sale(
-                        user_id=user.id,
-                        srid=f"demo-s-{user.id}-{counter}",
+                        user_id=user_id,
+                        srid=f"demo-s-{user_id}-{counter}",
                         sale_id=f"S{counter}",
                         nm_id=nm_id,
                         supplier_article=article,
@@ -90,7 +83,7 @@ async def seed_demo_data(
 
     stocks = [
         Stock(
-            user_id=user.id,
+            user_id=user_id,
             nm_id=nm_id,
             supplier_article=article,
             barcode=f"200000{nm_id}",
@@ -108,12 +101,39 @@ async def seed_demo_data(
     db.add_all(orders)
     db.add_all(sales)
     db.add_all(stocks)
-    await db.commit()
+    return {"orders": len(orders), "sales": len(sales), "stocks": len(stocks)}
 
-    return {
-        "seeded": True,
-        "orders": len(orders),
-        "sales": len(sales),
-        "stocks": len(stocks),
-        "period_days": days,
-    }
+
+@router.post("/start", response_model=TokenPair)
+async def start_demo(db: DBSession) -> TokenPair:
+    """Создать временный демо-аккаунт, заполнить его данными и выдать токены.
+
+    Реальный кабинет WB к таким аккаунтам подключить нельзя — нужна регистрация.
+    """
+    rnd = secrets.token_hex(4)
+    user = User(
+        email=f"demo_{rnd}@wbanalytics.app",
+        hashed_password=hash_password(secrets.token_urlsafe(16)),
+        is_demo=True,
+    )
+    db.add(user)
+    await db.flush()
+    _generate(user.id, db, days=30, sales_per_day=8)
+    await db.commit()
+    return TokenPair(
+        access_token=create_access_token(user.id),
+        refresh_token=create_refresh_token(user.id),
+    )
+
+
+@router.post("/seed")
+async def seed_demo_data(
+    user: CurrentUser,
+    db: DBSession,
+    days: int = Query(30, ge=1, le=90),
+    sales_per_day: int = Query(8, ge=1, le=100),
+):
+    """Досыпать демо-данные в текущий аккаунт."""
+    counts = _generate(user.id, db, days, sales_per_day)
+    await db.commit()
+    return {"seeded": True, **counts, "period_days": days}

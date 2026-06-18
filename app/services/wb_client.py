@@ -7,7 +7,7 @@ Docs: https://openapi.wildberries.ru/ (Statistics)
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -78,9 +78,13 @@ class WBClient:
         )
 
     async def ping(self) -> bool:
-        """Проверка валидности токена — лёгкий запрос остатков за сегодня."""
+        """Проверка валидности токена — лёгкий запрос остатков за сегодня.
+
+        Любая ошибка (невалидный токен, сетевой сбой, неожиданный ответ WB)
+        трактуется как «токен не подошёл», чтобы не ронять API в 500.
+        """
         try:
-            await self.get_stocks(datetime.now())
+            await self.get_stocks(datetime.now(UTC))
             return True
-        except WBAPIError:
+        except Exception:  # noqa: BLE001
             return False

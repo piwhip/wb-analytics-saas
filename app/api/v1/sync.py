@@ -6,6 +6,8 @@ from app.services.sync_service import SyncService
 
 router = APIRouter(prefix="/sync", tags=["sync"])
 
+FREE_ANALYSES_LIMIT = 2
+
 
 @router.post("/run", response_model=SyncResult)
 async def sync_now(
@@ -22,7 +24,17 @@ async def sync_now(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Connect your WB token first (PUT /users/me/wb-token)",
         )
+    if not user.is_subscribed and user.analyses_used >= FREE_ANALYSES_LIMIT:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail=(
+                f"Лимит бесплатных анализов ({FREE_ANALYSES_LIMIT}) исчерпан. "
+                "Оформите подписку, чтобы продолжить."
+            ),
+        )
     result = await SyncService(db).sync_user(user, days_back=days_back)
+    user.analyses_used += 1
+    await db.commit()
     return SyncResult(**result)
 
 

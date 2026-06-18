@@ -18,6 +18,9 @@ def _to_out(user) -> UserOut:
         wb_token_connected=bool(user.wb_token_encrypted),
         telegram_chat_id=user.telegram_chat_id,
         telegram_username=user.telegram_username,
+        is_demo=user.is_demo,
+        is_subscribed=user.is_subscribed,
+        analyses_used=user.analyses_used,
     )
 
 
@@ -28,7 +31,11 @@ async def me(user: CurrentUser) -> UserOut:
 
 @router.put("/me/wb-token", response_model=UserOut)
 async def connect_wb_token(data: WBTokenIn, user: CurrentUser, db: DBSession) -> UserOut:
-
+    if user.is_demo:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Зарегистрируйтесь, чтобы подключить свой кабинет Wildberries",
+        )
     async with WBClient(data.wb_token) as client:
         if not await client.ping():
             raise HTTPException(
