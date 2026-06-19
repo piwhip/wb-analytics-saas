@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Boolean, Integer, String
+from sqlalchemy import BigInteger, Boolean, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -15,7 +15,7 @@ class User(Base):
     is_subscribed: Mapped[bool] = mapped_column(Boolean, default=False)
     analyses_used: Mapped[int] = mapped_column(Integer, default=0)
 
-    wb_token_encrypted: Mapped[str | None] = mapped_column(String(512), default=None)
+    wb_token_encrypted: Mapped[str | None] = mapped_column(Text, default=None)
 
     telegram_chat_id: Mapped[int | None] = mapped_column(BigInteger, default=None)
     telegram_username: Mapped[str | None] = mapped_column(String(255), default=None)
