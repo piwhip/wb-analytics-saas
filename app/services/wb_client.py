@@ -7,7 +7,7 @@ Docs: https://openapi.wildberries.ru/ (Statistics)
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 import httpx
@@ -77,14 +77,24 @@ class WBClient:
             {"dateFrom": date_from.isoformat()},
         )
 
-    async def ping(self) -> bool:
-        """Проверка валидности токена — лёгкий запрос остатков за сегодня.
-
-        Любая ошибка (невалидный токен, сетевой сбой, неожиданный ответ WB)
-        трактуется как «токен не подошёл», чтобы не ронять API в 500.
-        """
+    async def check_token(self) -> tuple[bool, str]:
+        """Проверить токен через официальный WB /ping. Возвращает (ok, причина)."""
         try:
-            await self.get_stocks(datetime.now(UTC))
-            return True
-        except Exception:  # noqa: BLE001
-            return False
+            resp = await self._client.get("/ping")
+        except httpx.HTTPError as e:
+            return False, f"Не удалось связаться с Wildberries: {e}"
+
+        if resp.status_code == 200:
+            return True, ""
+        if resp.status_code in (401, 403):
+            return False, (
+                "Токен недействителен или не той категории. "
+                "Нужен токен с доступом к «Статистике»."
+            )
+        if resp.status_code == 429:
+            return False, "Wildberries временно ограничил запросы (429). Попробуйте через минуту."
+        return False, f"Wildberries вернул код {resp.status_code}. Попробуйте позже."
+
+    async def ping(self) -> bool:
+        ok, _ = await self.check_token()
+        return ok

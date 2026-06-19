@@ -37,11 +37,12 @@ async def connect_wb_token(data: WBTokenIn, user: CurrentUser, db: DBSession) ->
             detail="Зарегистрируйтесь, чтобы подключить свой кабинет Wildberries",
         )
     async with WBClient(data.wb_token) as client:
-        if not await client.ping():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="WB token rejected by Wildberries API",
-            )
+        ok, reason = await client.check_token()
+    if not ok:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=reason or "Токен отклонён Wildberries",
+        )
     user.wb_token_encrypted = encrypt_token(data.wb_token)
     await db.commit()
     await db.refresh(user)
